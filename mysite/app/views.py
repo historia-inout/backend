@@ -29,7 +29,7 @@ def scrape(request):
 		textSourceUrls = textDB.objects.values_list('sourceUrl', flat=True)
 		textSourceUrls = list(textSourceUrls)
 
-		if query not in textSourceUrls or query not in imageSourceUrls:
+		if url not in textSourceUrls or url not in imageSourceUrls:
 			LANGUAGE = "english"
 			SENTENCES_COUNT = 10
 
@@ -48,6 +48,28 @@ def scrape(request):
 
 			scraper = Scraper()
 			scraper.scrape(url)
+		else:
+			textDB.objects.filter(sourceUrl=url).delete()
+			imageDB.objects.filter(sourceUrl=url).delete()
+			LANGUAGE = "english"
+			SENTENCES_COUNT = 10
+
+			parser = HtmlParser.from_url(url, Tokenizer(LANGUAGE))
+			stemmer = Stemmer(LANGUAGE)
+
+			summarizer = Summarizer(stemmer)
+			summarizer.stop_words = get_stop_words(LANGUAGE)
+
+			summary = ''
+			
+			for sentence in summarizer(parser.document, SENTENCES_COUNT):
+				summary = summary + str(sentence)
+
+			textDB.objects.create(summary=summary, dateTime=timezone.now(), sourceUrl=url)
+
+			scraper = Scraper()
+			scraper.scrape(url)
+			
 
 		return HttpResponse("Successful")
 
@@ -115,10 +137,13 @@ def query(request):
 			textRecordsDatabase[objectID] = i
 
 		for key in textRecordsDatabase:
-			if query in textRecordsDatabase[key]:
+			tempCheck = textRecordsDatabase[key]
+			tempCheck = tempCheck.lower()
+			if query in tempCheck:
 				data = {}
 				temp = textDB.objects.get(id=key)
 				summary = temp.summary
+				summary = summary.lower()
 				sourceUrl = temp.sourceUrl
 				data = {
 					"id": key,
@@ -127,4 +152,9 @@ def query(request):
 				}
 				result.append(data)
 
-		return JsonResponse(result, safe=False)
+		jsonDataResult = {
+			"data": result
+		}
+
+		return JsonResponse(jsonDataResult, safe=False)
+

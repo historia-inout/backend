@@ -21,6 +21,8 @@ class Scraper:
 		if annotations.best_guess_labels:
 			for label in annotations.best_guess_labels:
 				bestGuessLabel = label.label
+		else:
+			bestGuessLabel = ' '
 
 		if annotations.web_entities:
 			for entity in annotations.web_entities:
@@ -44,9 +46,14 @@ class Scraper:
 				tempUrl = urljoin(url, relativeUrl)
 				imageUrls.append(tempUrl)
 
+		iconLink = codebase.find("link", rel="shortcut icon")
+		iconLink = urljoin(url, iconLink.get("href"))
+
+		title = codebase.title.string
+
 		for i in imageUrls:
 			keywords, label = self.detect_web_uri(i)
 			x = ''
 			for j in keywords:
 				x = x + j + ", "
-			imageDB.objects.create(keywords=x, dateTime=timezone.now(), sourceUrl=url, imageUrl=i, label=label)
+			imageDB.objects.create(keywords=x, dateTime=timezone.now(), sourceUrl=url, imageUrl=i, label=label, icon=iconLink, title=title)

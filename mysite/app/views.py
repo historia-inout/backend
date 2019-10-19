@@ -7,6 +7,12 @@ from sumy.utils import get_stop_words
 
 # Close sumy imports
 
+from bs4 import BeautifulSoup
+import requests
+from urllib.request import urlopen, urljoin
+
+# Closing scraper imports
+
 from django.utils import timezone
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
@@ -44,7 +50,15 @@ def scrape(request):
 			for sentence in summarizer(parser.document, SENTENCES_COUNT):
 				summary = summary + str(sentence)
 
-			textDB.objects.create(summary=summary, dateTime=timezone.now(), sourceUrl=url)
+			x = urlopen(url)
+			codebase = BeautifulSoup(x, 'html.parser')
+			title = codebase.title.string
+			iconLink = codebase.find("link", rel="shortcut icon")
+
+			tempIconUrl = urljoin(url, iconLink.get('href'))
+			print(tempIconUrl)
+
+			textDB.objects.create(summary=summary, dateTime=timezone.now(), sourceUrl=url, title=title, icon=tempIconUrl)
 
 			scraper = Scraper()
 			scraper.scrape(url)
@@ -65,7 +79,14 @@ def scrape(request):
 			for sentence in summarizer(parser.document, SENTENCES_COUNT):
 				summary = summary + str(sentence)
 
-			textDB.objects.create(summary=summary, dateTime=timezone.now(), sourceUrl=url)
+			x = urlopen(url)
+			codebase = BeautifulSoup(x, 'html.parser')
+			title = codebase.title.string
+			iconLink = codebase.find("link", rel="shortcut icon")
+
+			print(iconLink)
+
+			textDB.objects.create(summary=summary, dateTime=timezone.now(), sourceUrl=url, title=title)
 
 			scraper = Scraper()
 			scraper.scrape(url)
@@ -125,6 +146,8 @@ def query(request):
 					}
 					result[sourceUrl]["collection"].append(data)
 				else:
+					result[sourceUrl]["icon"] = temp.icon
+					result[sourceUrl]["title"] = temp.title
 					result[sourceUrl]["collection"].append(data)
 
 		for i in summaryRecords:
@@ -141,6 +164,8 @@ def query(request):
 					}
 					result[sourceUrl]["collection"].append(data)
 				else:
+					result[sourceUrl]["icon"] = temp.icon
+					result[sourceUrl]["title"] = temp.title
 					result[sourceUrl]["collection"].append(data)
 
 		jsonDataResult = {

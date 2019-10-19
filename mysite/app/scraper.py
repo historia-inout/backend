@@ -36,6 +36,8 @@ class Scraper:
 		imageUrls = []
 		for i in images:
 			relativeUrl = i.get("src")
+			if (not relativeUrl):
+				relativeUrl = i.get("data-src")
 			if "http" in relativeUrl:
 				imageUrls.append(relativeUrl)
 			else:

@@ -86,7 +86,7 @@ def scrape(request):
 
 			print(iconLink)
 
-			textDB.objects.create(summary=summary, dateTime=timezone.now(), sourceUrl=url, title=title, title=title, icon=tempIconUrl)
+			textDB.objects.create(summary=summary, dateTime=timezone.now(), sourceUrl=url, title=title, icon=tempIconUrl)
 
 			scraper = Scraper()
 			scraper.scrape(url)
@@ -183,4 +183,18 @@ def history(request):
 	textDBResults = textDB.objects.filter(dateTime__lte=timezone.now()).order_by('-dateTime')
 	imageDBResults = list(imageDBResults)
 	textDBResults = list(textDBResults)
-	return HttpResponse("")
+	result_list = list(chain(imageDBResults, textDBResults))
+	results = {
+		"collection": [],
+		"history": True
+	}
+	for i in result_list:
+		data = {
+			"sourceUrl": i.sourceUrl,
+			"title": i.title,
+			"icon": i.icon
+		}
+		results["collection"].append(data)
+	return JsonResponse(results)
+
+

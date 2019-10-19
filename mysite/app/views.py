@@ -69,7 +69,7 @@ def scrape(request):
 
 			scraper = Scraper()
 			scraper.scrape(url)
-			
+
 
 		return HttpResponse("Successful")
 
@@ -103,58 +103,52 @@ def query(request):
 		query = y.get('query', None)
 		
 		imgRecords = imageDB.objects.values_list('keywords', flat=True)
-		imgRecordsList = list(imgRecords)
-		imgRecordsDatabase = {}
+		imgRecords = list(imgRecords)
+
+		summaryRecords = textDB.objects.values_list('summary', flat=True)
+		summaryRecords = list(summaryRecords)
+
+		result = {}
+
 		for i in imgRecords:
-			x = imageDB.objects.get(keywords=i)
-			objectID = x.id
-			imgRecordsDatabase[objectID] = i
-
-		result = []
-		for key in imgRecordsDatabase:
-			# print(imgRecordsDatabase[key])
-			if str(query) in str(imgRecordsDatabase[key]):
-				temp = imageDB.objects.get(id=key)
-				summary = temp.keywords
-				sourceUrl = temp.sourceUrl
-				imageUrl = temp.imageUrl
-				data = {
-					"id": key,
-					"summary": summary,
-					"sourceUrl": sourceUrl,
-					"imageUrl": imageUrl
-				}
-				# print(data)
-				result.append(data)
-
-		textRecords = textDB.objects.values_list('summary', flat=True)
-		textRecordsList = list(textRecords)
-		textRecordsDatabase = {}
-
-		for i in textRecords:
-			x = textDB.objects.get(summary=i)
-			objectID = x.id
-			textRecordsDatabase[objectID] = i
-
-		for key in textRecordsDatabase:
-			tempCheck = textRecordsDatabase[key]
-			tempCheck = tempCheck.lower()
-			if query in tempCheck:
-				data = {}
-				temp = textDB.objects.get(id=key)
-				summary = temp.summary
-				summary = summary.lower()
+			if query.lower() in i.lower():
+				temp = imageDB.objects.get(keywords=i)
 				sourceUrl = temp.sourceUrl
 				data = {
-					"id": key,
-					"summary": summary,
-					"sourceUrl": sourceUrl,
+					"imageUrl": temp.imageUrl,
+					"summary": temp.keywords
 				}
-				result.append(data)
+
+				if sourceUrl not in result.keys():
+					result[sourceUrl] = {
+						"collection": []
+					}
+					result[sourceUrl]["collection"].append(data)
+				else:
+					result[sourceUrl]["collection"].append(data)
+
+		for i in summaryRecords:
+			if query.lower() in i.lower():
+				temp = textDB.objects.get(summary=i)
+				sourceUrl = temp.sourceUrl
+				data = {
+					"summary": temp.summary
+				}
+
+				if sourceUrl not in result.keys():
+					result[sourceUrl] = {
+						"collection": []
+					}
+					result[sourceUrl]["collection"].append(data)
+				else:
+					result[sourceUrl]["collection"].append(data)
 
 		jsonDataResult = {
 			"data": result
 		}
+		return JsonResponse(result, safe=False)
 
-		return JsonResponse(jsonDataResult, safe=False)
-
+	else:
+		print(request.body)
+		print("Idiota")
+		return HttpResponse("Noob")

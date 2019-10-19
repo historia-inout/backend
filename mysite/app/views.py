@@ -22,24 +22,32 @@ def scrape(request):
 		y = json.loads(request.body)
 		url = y.get("url", None)
 		print(url)
-		LANGUAGE = "english"
-		SENTENCES_COUNT = 10
 
-		parser = HtmlParser.from_url(url, Tokenizer(LANGUAGE))
-		stemmer = Stemmer(LANGUAGE)
+		imageSourceUrls = imageDB.objects.values_list('sourceUrl', flat=True)
+		imageSourceUrls = list(imageSourceUrls)
 
-		summarizer = Summarizer(stemmer)
-		summarizer.stop_words = get_stop_words(LANGUAGE)
+		textSourceUrls = textDB.objects.values_list('sourceUrl', flat=True)
+		textSourceUrls = list(textSourceUrls)
 
-		summary = ''
-		
-		for sentence in summarizer(parser.document, SENTENCES_COUNT):
-			summary = summary + str(sentence)
+		if query not in textSourceUrls or query not in imageSourceUrls:
+			LANGUAGE = "english"
+			SENTENCES_COUNT = 10
 
-		textDB.objects.create(summary=summary, dateTime=timezone.now(), sourceUrl=url)
+			parser = HtmlParser.from_url(url, Tokenizer(LANGUAGE))
+			stemmer = Stemmer(LANGUAGE)
 
-		scraper = Scraper()
-		scraper.scrape(url)
+			summarizer = Summarizer(stemmer)
+			summarizer.stop_words = get_stop_words(LANGUAGE)
+
+			summary = ''
+			
+			for sentence in summarizer(parser.document, SENTENCES_COUNT):
+				summary = summary + str(sentence)
+
+			textDB.objects.create(summary=summary, dateTime=timezone.now(), sourceUrl=url)
+
+			scraper = Scraper()
+			scraper.scrape(url)
 
 		return HttpResponse("Successful")
 

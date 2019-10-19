@@ -4,7 +4,7 @@ from sumy.nlp.tokenizers import Tokenizer
 from sumy.summarizers.lsa import LsaSummarizer as Summarizer
 from sumy.nlp.stemmers import Stemmer
 from sumy.utils import get_stop_words
-
+from itertools import chain
 # Close sumy imports
 
 from bs4 import BeautifulSoup
@@ -86,7 +86,7 @@ def scrape(request):
 
 			print(iconLink)
 
-			textDB.objects.create(summary=summary, dateTime=timezone.now(), sourceUrl=url, title=title)
+			textDB.objects.create(summary=summary, dateTime=timezone.now(), sourceUrl=url, title=title, title=title, icon=tempIconUrl)
 
 			scraper = Scraper()
 			scraper.scrape(url)
@@ -177,3 +177,10 @@ def query(request):
 		print(request.body)
 		print("Idiota")
 		return HttpResponse("Noob")
+
+def history(request):
+	imageDBResults = imageDB.objects.filter(dateTime__lte=timezone.now()).order_by('-dateTime')
+	textDBResults = textDB.objects.filter(dateTime__lte=timezone.now()).order_by('-dateTime')
+	imageDBResults = list(imageDBResults)
+	textDBResults = list(textDBResults)
+	return HttpResponse("")

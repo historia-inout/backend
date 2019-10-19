@@ -46,5 +46,5 @@ class Scraper:
 			keywords, label = self.detect_web_uri(i)
 			x = ''
 			for j in keywords:
-				x = x + j + "\n"
+				x = x + j + ", "
 			imageDB.objects.create(keywords=x, dateTime=timezone.now(), sourceUrl=url, imageUrl=i, label=label)

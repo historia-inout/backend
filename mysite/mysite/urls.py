@@ -21,4 +21,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', appView.home, name='home'),
     path('scrape/', appView.scrape, name='scrape'),
+    path('query/api/<int:pk>', appView.queryHistory, name='queryHistory'),
+    path('query/', appView.query, name='query'),
 ]

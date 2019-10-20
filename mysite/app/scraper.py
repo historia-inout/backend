@@ -48,11 +48,15 @@ class Scraper:
 
 		iconLink = codebase.find("link", rel="shortcut icon")
 		if not iconLink:
-			tempIconUrl = ' '
+			iconLink = ' '
 		else:
-			tempIconUrl = urljoin(url, iconLink.get('href'))
+			iconLink = urlzjoin(url, iconLink.get('href'))
 
-		title = codebase.title.string
+		try:
+			title = codebase.title.string
+		except:
+			domain = urlparse(url)
+			title = data.hostname
 
 		for i in imageUrls:
 			keywords, label = self.detect_web_uri(i)
@@ -60,3 +64,6 @@ class Scraper:
 			for j in keywords:
 				x = x + j + ", "
 			imageDB.objects.create(keywords=x, dateTime=timezone.now(), sourceUrl=url, imageUrl=i, label=label, icon=iconLink, title=title)
+
+
+

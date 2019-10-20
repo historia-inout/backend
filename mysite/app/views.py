@@ -10,7 +10,7 @@ from itertools import chain
 from bs4 import BeautifulSoup
 import requests
 from urllib.request import urlopen, urljoin
-
+from urllib.parse import urlparse
 # Closing scraper imports
 
 from django.utils import timezone
@@ -53,7 +53,11 @@ def scrape(request):
 
 			x = urlopen(url)
 			codebase = BeautifulSoup(x, 'html.parser')
-			title = codebase.title.string
+			try:
+				title = codebase.title.string
+			except:
+				domain = urlparse(url)
+				title = data.hostname
 			iconLink = codebase.find("link", rel="shortcut icon")
 			if not iconLink:
 				tempIconUrl = ' '
@@ -142,6 +146,8 @@ def search(queryWord):
 				result[sourceUrl] = {
 					"collection": []
 				}
+				result[sourceUrl]["icon"] = temp.icon
+				result[sourceUrl]["title"] = temp.title
 				result[sourceUrl]["collection"].append(data)
 			else:
 				result[sourceUrl]["icon"] = temp.icon
@@ -160,6 +166,8 @@ def search(queryWord):
 				result[sourceUrl] = {
 					"collection": []
 				}
+				result[sourceUrl]["icon"] = temp.icon
+				result[sourceUrl]["title"] = temp.title
 				result[sourceUrl]["collection"].append(data)
 			else:
 				result[sourceUrl]["icon"] = temp.icon

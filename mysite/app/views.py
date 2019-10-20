@@ -49,7 +49,7 @@ def searchQueryMobile(heatWord):
 					tempTitle = t.title
 					tempIcon = t.icon
 					result = {
-						"sourceUrl": tempUrl,
+						"url": tempUrl,
 						"icon": tempIcon,
 						"title": tempTitle
 					}

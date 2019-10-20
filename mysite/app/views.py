@@ -48,27 +48,30 @@ def scrape(request):
 		textSourceUrls = textDB.objects.values_list('sourceUrl', flat=True)
 		textSourceUrls = list(textSourceUrls)
 
+		summary = textContent
 		if url not in textSourceUrls or url not in imageSourceUrls:
 			LANGUAGE = "english"
 			SENTENCES_COUNT = 10
 
-			parser = PlaintextParser.from_string(textContent,Tokenizer("english"))
-			# parser = HtmlParser.from_url(url, Tokenizer(LANGUAGE))
-			# stemmer = Stemmer(LANGUAGE)
+			# parser = PlaintextParser.from_string(textContent,Tokenizer("english"))
+			# summarizer = LuhnSummarizer()
+			# summary = ''
 
-			# summarizer = Summarizer(stemmer)
-			summarizer = LuhnSummarizer()
-			# summarizer.stop_words = get_stop_words(LANGUAGE)
-
-			summary = ''
-			
 			# for sentence in summarizer(parser.document, SENTENCES_COUNT):
 			# 	summary = summary + str(sentence)
-
-			for sentence in summarizer(parser.document, SENTENCES_COUNT):
-				summary = summary + str(sentence)
+			
 
 			# print("Summary ",summary)
+
+			
+			parser = HtmlParser.from_url(url, Tokenizer(LANGUAGE))
+			stemmer = Stemmer(LANGUAGE)
+			summarizer = Summarizer(stemmer)
+			summarizer.stop_words = get_stop_words(LANGUAGE)
+
+			summaryText = ""
+			for sentence in summarizer(parser.document, SENTENCES_COUNT):
+				summaryText = summaryText + str(sentence)
 			
 			r = Request(url,headers={'User-Agent': 'Mozilla/5.0'})
 			x = urlopen(r)
@@ -84,7 +87,7 @@ def scrape(request):
 			else:
 				iconLink = urljoin(url, iconLink.get('href'))
 
-			textDB.objects.create(summary=summary, dateTime=timezone.now(), sourceUrl=url, title=title, icon=iconLink)
+			textDB.objects.create(summaryText=summaryText, summary=summary, dateTime=timezone.now(), sourceUrl=url, title=title, icon=iconLink)
 
 			scraper = Scraper()
 			scraper.scrape(url)
@@ -96,20 +99,21 @@ def scrape(request):
 			SENTENCES_COUNT = 10
 
 			parser = PlaintextParser.from_string(textContent,Tokenizer("english"))
-			# parser = HtmlParser.from_url(url, Tokenizer(LANGUAGE))
-			# stemmer = Stemmer(LANGUAGE)
-
-			# summarizer = Summarizer(stemmer)
 			summarizer = LuhnSummarizer()
-			# summarizer.stop_words = get_stop_words(LANGUAGE)
 
 			summary = ''
-			
-			# for sentence in summarizer(parser.document, SENTENCES_COUNT):
-			# 	summary = summary + str(sentence)
 
 			for sentence in summarizer(parser.document, SENTENCES_COUNT):
 				summary = summary + str(sentence)
+
+			parser = HtmlParser.from_url(url, Tokenizer(LANGUAGE))
+			stemmer = Stemmer(LANGUAGE)
+			summarizer = Summarizer(stemmer)
+			summarizer.stop_words = get_stop_words(LANGUAGE)
+
+			summaryText = ""
+			for sentence in summarizer(parser.document, SENTENCES_COUNT):
+				summaryText = summaryText + str(sentence)
 
 			r = Request(url,headers={'User-Agent': 'Mozilla/5.0'})
 			x = urlopen(r)
@@ -121,7 +125,7 @@ def scrape(request):
 			else:
 				iconLink = urljoin(url, iconLink.get('href'))
 
-			textDB.objects.create(summary=summary, dateTime=timezone.now(), sourceUrl=url, title=title, icon=iconLink)
+			textDB.objects.create(summaryText=summaryText, summary=summary, dateTime=timezone.now(), sourceUrl=url, title=title, icon=iconLink)
 
 			scraper = Scraper()
 			scraper.scrape(url)
@@ -141,7 +145,7 @@ def queryHistory(request, pk):
 			data = {
 				"sourceUrl": temp.sourceUrl,
 				"dateTime": temp.dateTime,
-				"summary": temp.summary
+				"summary": temp.summaryText,
 			}
 		else:
 			data = {
@@ -192,7 +196,7 @@ def search(queryWord):
 			for temp in temps:
 				sourceUrl = temp.sourceUrl
 				data = {
-					"summary": temp.summary
+					"summary": temp.summaryText
 				}
 
 				if sourceUrl not in result.keys():
@@ -253,7 +257,7 @@ def history(request):
 			try:
 				check = i.keywords
 			except:
-				check = i.summary
+				check = i.summaryText
 			result[i.sourceUrl] = {
 				"title": i.title,
 				"icon": i.icon,
@@ -281,7 +285,7 @@ def historyapi(request):
 			try:
 				check = i.keywords
 			except:
-				check = i.summary
+				check = i.summaryText
 			data = {
 				"url": temp,
 				"title": i.title,

@@ -17,6 +17,7 @@ class imageDB(models.Model):
 
 class textDB(models.Model):
 	summary = models.TextField()
+	summaryText = models.TextField()
 	icon = models.TextField()
 	title = models.CharField(max_length=128)
 	sourceUrl = models.TextField()

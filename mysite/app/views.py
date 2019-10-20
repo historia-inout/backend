@@ -9,7 +9,7 @@ from itertools import chain
 
 from bs4 import BeautifulSoup
 import requests
-from urllib.request import urlopen, urljoin
+from urllib.request import urlopen, urljoin, Request
 from urllib.parse import urlparse
 # Closing scraper imports
 
@@ -69,8 +69,9 @@ def scrape(request):
 				summary = summary + str(sentence)
 
 			# print("Summary ",summary)
-
-			x = urlopen(url)
+			
+			r = Request(url,headers={'User-Agent': 'Mozilla/5.0'})
+			x = urlopen(r)
 			codebase = BeautifulSoup(x, 'html.parser')
 			title = codebase.title.string
 			if not title:
@@ -110,7 +111,8 @@ def scrape(request):
 			for sentence in summarizer(parser.document, SENTENCES_COUNT):
 				summary = summary + str(sentence)
 
-			x = urlopen(url)
+			r = Request(url,headers={'User-Agent': 'Mozilla/5.0'})
+			x = urlopen(r)
 			codebase = BeautifulSoup(x, 'html.parser')
 			title = codebase.title.string
 			iconLink = codebase.find("link", rel="shortcut icon")

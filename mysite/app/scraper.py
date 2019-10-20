@@ -1,6 +1,6 @@
 from bs4 import BeautifulSoup
 import requests
-from urllib.request import urlopen, urljoin
+from urllib.request import urlopen, urljoin, Request
 import json
 from google.cloud import vision
 from .models import imageDB
@@ -33,7 +33,8 @@ class Scraper:
 		return keywordsGenerated, bestGuessLabel
 
 	def scrape(self, url):
-		x = urlopen(url)
+		r = Request(url,headers={'User-Agent': 'Mozilla/5.0'})
+		x = urlopen(r)
 		codebase = BeautifulSoup(x, 'html.parser')
 		images = codebase.findAll("img")
 		imageUrls = []
@@ -41,11 +42,12 @@ class Scraper:
 			relativeUrl = i.get("src")
 			if (not relativeUrl):
 				relativeUrl = i.get("data-src")
-			if "http" in relativeUrl:
-				imageUrls.append(relativeUrl)
-			else:
-				tempUrl = urljoin(url, relativeUrl)
-				imageUrls.append(tempUrl)
+			if relativeUrl:
+				if "http" in relativeUrl:
+					imageUrls.append(relativeUrl)
+				else:
+					tempUrl = urljoin(url, relativeUrl)
+					imageUrls.append(tempUrl)
 
 		iconLink = codebase.find("link", rel="shortcut icon")
 		if not iconLink:

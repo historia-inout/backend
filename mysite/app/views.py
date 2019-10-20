@@ -68,7 +68,7 @@ def scrape(request):
 			for sentence in summarizer(parser.document, SENTENCES_COUNT):
 				summary = summary + str(sentence)
 
-			print("Summary ",summary)
+			# print("Summary ",summary)
 
 			x = urlopen(url)
 			codebase = BeautifulSoup(x, 'html.parser')
@@ -90,17 +90,23 @@ def scrape(request):
 		else:
 			textDB.objects.filter(sourceUrl=url).delete()
 			imageDB.objects.filter(sourceUrl=url).delete()
+			print("DELETED")
 			LANGUAGE = "english"
 			SENTENCES_COUNT = 10
 
-			parser = HtmlParser.from_url(url, Tokenizer(LANGUAGE))
-			stemmer = Stemmer(LANGUAGE)
+			parser = PlaintextParser.from_string(textContent,Tokenizer("english"))
+			# parser = HtmlParser.from_url(url, Tokenizer(LANGUAGE))
+			# stemmer = Stemmer(LANGUAGE)
 
-			summarizer = Summarizer(stemmer)
-			summarizer.stop_words = get_stop_words(LANGUAGE)
+			# summarizer = Summarizer(stemmer)
+			summarizer = LuhnSummarizer()
+			# summarizer.stop_words = get_stop_words(LANGUAGE)
 
 			summary = ''
 			
+			# for sentence in summarizer(parser.document, SENTENCES_COUNT):
+			# 	summary = summary + str(sentence)
+
 			for sentence in summarizer(parser.document, SENTENCES_COUNT):
 				summary = summary + str(sentence)
 
@@ -108,8 +114,10 @@ def scrape(request):
 			codebase = BeautifulSoup(x, 'html.parser')
 			title = codebase.title.string
 			iconLink = codebase.find("link", rel="shortcut icon")
-
-			print(iconLink)
+			if not iconLink:
+				iconLink = ' '
+			else:
+				iconLink = urljoin(url, iconLink.get('href'))
 
 			textDB.objects.create(summary=summary, dateTime=timezone.now(), sourceUrl=url, title=title, icon=iconLink)
 
@@ -150,50 +158,55 @@ def search(queryWord):
 	summaryRecords = textDB.objects.values_list('summary', flat=True)
 	summaryRecords = list(summaryRecords)
 
+	results = []
 	result = {}
 
 	for i in imgRecords:
 		if queryWord.lower() in i.lower():
-			temp = imageDB.objects.get(keywords=i)
-			sourceUrl = temp.sourceUrl
-			data = {
-				"imageUrl": temp.imageUrl,
-				"summary": temp.keywords
-			}
-
-			if sourceUrl not in result.keys():
-				result[sourceUrl] = {
-					"collection": []
+			temps = imageDB.objects.filter(keywords=i)
+			for temp in temps:
+				sourceUrl = temp.sourceUrl
+				data = {
+					"imageUrl": temp.imageUrl,
+					"summary": temp.keywords
 				}
-				result[sourceUrl]["icon"] = temp.icon
-				result[sourceUrl]["title"] = temp.title
-				result[sourceUrl]["collection"].append(data)
-			else:
-				result[sourceUrl]["icon"] = temp.icon
-				result[sourceUrl]["title"] = temp.title
-				result[sourceUrl]["collection"].append(data)
+
+				if sourceUrl not in result.keys():
+					result[sourceUrl] = {
+						"collection": []
+					}
+					result[sourceUrl]["icon"] = temp.icon
+					result[sourceUrl]["title"] = temp.title
+					result[sourceUrl]["collection"].append(data)
+				else:
+					result[sourceUrl]["icon"] = temp.icon
+					result[sourceUrl]["title"] = temp.title
+					result[sourceUrl]["collection"].append(data)
+				results.append(result)
 
 	for i in summaryRecords:
 		if queryWord.lower() in i.lower():
-			temp = textDB.objects.get(summary=i)
-			sourceUrl = temp.sourceUrl
-			data = {
-				"summary": temp.summary
-			}
-
-			if sourceUrl not in result.keys():
-				result[sourceUrl] = {
-					"collection": []
+			temps = textDB.objects.filter(summary=i)
+			for temp in temps:
+				sourceUrl = temp.sourceUrl
+				data = {
+					"summary": temp.summary
 				}
-				result[sourceUrl]["icon"] = temp.icon
-				result[sourceUrl]["title"] = temp.title
-				result[sourceUrl]["collection"].append(data)
-			else:
-				result[sourceUrl]["icon"] = temp.icon
-				result[sourceUrl]["title"] = temp.title
-				result[sourceUrl]["collection"].append(data)
 
-	return result
+				if sourceUrl not in result.keys():
+					result[sourceUrl] = {
+						"collection": []
+					}
+					result[sourceUrl]["icon"] = temp.icon
+					result[sourceUrl]["title"] = temp.title
+					result[sourceUrl]["collection"].append(data)
+				else:
+					result[sourceUrl]["icon"] = temp.icon
+					result[sourceUrl]["title"] = temp.title
+					result[sourceUrl]["collection"].append(data)
+				results.append(result)
+
+	return results
 
 def query(request):
 	if request.method == 'POST':
@@ -206,13 +219,14 @@ def query(request):
 
 		for i in queryList:
 			tempResult = search(i)
-			for j in tempResult:
-				if j not in result.keys():
-					result[j] = {
-						"collection": tempResult[j]["collection"],
-						"icon": tempResult[j]["icon"],
-						"title": tempResult[j]["title"]
-					}
+			for k in range(len(tempResult)):
+				for j in tempResult[k]:
+					if j not in result.keys():
+						result[j] = {
+							"collection": tempResult[k][j]["collection"],
+							"icon": tempResult[k][j]["icon"],
+							"title": tempResult[k][j]["title"]
+						}
 
 		return JsonResponse(result, safe=False)
 

@@ -24,4 +24,5 @@ urlpatterns = [
     path('query/api/<int:pk>', appView.queryHistory, name='queryHistory'),
     path('query/', appView.query, name='query'),
     path('history/', appView.history, name='history'),
+    path('history/mobile/api/', appView.historyapi, name='historyapi'),
 ]

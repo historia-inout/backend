@@ -19,6 +19,7 @@ from django.http import HttpResponse, JsonResponse
 import json
 from .scraper import Scraper
 from .models import textDB, imageDB
+
 # Create your views here.
 def home(request):
 	return render(request, 'app/home.html')
@@ -54,9 +55,10 @@ def scrape(request):
 			codebase = BeautifulSoup(x, 'html.parser')
 			title = codebase.title.string
 			iconLink = codebase.find("link", rel="shortcut icon")
-
-			tempIconUrl = urljoin(url, iconLink.get('href'))
-			print(tempIconUrl)
+			if not iconLink:
+				tempIconUrl = ' '
+			else:
+				tempIconUrl = urljoin(url, iconLink.get('href'))
 
 			textDB.objects.create(summary=summary, dateTime=timezone.now(), sourceUrl=url, title=title, icon=tempIconUrl)
 
@@ -118,59 +120,73 @@ def queryHistory(request, pk):
 
 		return JsonResponse(data, safe=False)
 
+def search(queryWord):
+	imgRecords = imageDB.objects.values_list('keywords', flat=True)
+	imgRecords = list(imgRecords)
+
+	summaryRecords = textDB.objects.values_list('summary', flat=True)
+	summaryRecords = list(summaryRecords)
+
+	result = {}
+
+	for i in imgRecords:
+		if queryWord.lower() in i.lower():
+			temp = imageDB.objects.get(keywords=i)
+			sourceUrl = temp.sourceUrl
+			data = {
+				"imageUrl": temp.imageUrl,
+				"summary": temp.keywords
+			}
+
+			if sourceUrl not in result.keys():
+				result[sourceUrl] = {
+					"collection": []
+				}
+				result[sourceUrl]["collection"].append(data)
+			else:
+				result[sourceUrl]["icon"] = temp.icon
+				result[sourceUrl]["title"] = temp.title
+				result[sourceUrl]["collection"].append(data)
+
+	for i in summaryRecords:
+		if queryWord.lower() in i.lower():
+			temp = textDB.objects.get(summary=i)
+			sourceUrl = temp.sourceUrl
+			data = {
+				"summary": temp.summary
+			}
+
+			if sourceUrl not in result.keys():
+				result[sourceUrl] = {
+					"collection": []
+				}
+				result[sourceUrl]["collection"].append(data)
+			else:
+				result[sourceUrl]["icon"] = temp.icon
+				result[sourceUrl]["title"] = temp.title
+				result[sourceUrl]["collection"].append(data)
+
+	return result
+
 def query(request):
 	if request.method == 'POST':
 		y = json.loads(request.body)
 		query = y.get('query', None)
-		
-		imgRecords = imageDB.objects.values_list('keywords', flat=True)
-		imgRecords = list(imgRecords)
-
-		summaryRecords = textDB.objects.values_list('summary', flat=True)
-		summaryRecords = list(summaryRecords)
 
 		result = {}
+		
+		queryList = query.split()
 
-		for i in imgRecords:
-			if query.lower() in i.lower():
-				temp = imageDB.objects.get(keywords=i)
-				sourceUrl = temp.sourceUrl
-				data = {
-					"imageUrl": temp.imageUrl,
-					"summary": temp.keywords
-				}
-
-				if sourceUrl not in result.keys():
-					result[sourceUrl] = {
-						"collection": []
+		for i in queryList:
+			tempResult = search(i)
+			for j in tempResult:
+				if j not in result.keys():
+					result[j] = {
+						"collection": tempResult[j]["collection"],
+						"icon": tempResult[j]["icon"],
+						"title": tempResult[j]["title"]
 					}
-					result[sourceUrl]["collection"].append(data)
-				else:
-					result[sourceUrl]["icon"] = temp.icon
-					result[sourceUrl]["title"] = temp.title
-					result[sourceUrl]["collection"].append(data)
 
-		for i in summaryRecords:
-			if query.lower() in i.lower():
-				temp = textDB.objects.get(summary=i)
-				sourceUrl = temp.sourceUrl
-				data = {
-					"summary": temp.summary
-				}
-
-				if sourceUrl not in result.keys():
-					result[sourceUrl] = {
-						"collection": []
-					}
-					result[sourceUrl]["collection"].append(data)
-				else:
-					result[sourceUrl]["icon"] = temp.icon
-					result[sourceUrl]["title"] = temp.title
-					result[sourceUrl]["collection"].append(data)
-
-		jsonDataResult = {
-			"data": result
-		}
 		return JsonResponse(result, safe=False)
 
 	else:
@@ -184,17 +200,54 @@ def history(request):
 	imageDBResults = list(imageDBResults)
 	textDBResults = list(textDBResults)
 	result_list = list(chain(imageDBResults, textDBResults))
-	results = {
-		"collection": [],
-		"history": True
-	}
+
+	result = {}
+
 	for i in result_list:
-		data = {
-			"sourceUrl": i.sourceUrl,
-			"title": i.title,
-			"icon": i.icon
-		}
-		results["collection"].append(data)
-	return JsonResponse(results)
+		temp = i.sourceUrl
+		print(temp)
+		if temp not in result.keys():
+			try:
+				check = i.keywords
+			except:
+				check = i.summary
+			result[i.sourceUrl] = {
+				"title": i.title,
+				"icon": i.icon,
+				"summary": check
+			}
+	print(result)
+	return JsonResponse(result, safe=False)
+
+def historyapi(request):
+	imageDBResults = imageDB.objects.filter(dateTime__lte=timezone.now()).order_by('-dateTime')
+	textDBResults = textDB.objects.filter(dateTime__lte=timezone.now()).order_by('-dateTime')
+	imageDBResults = list(imageDBResults)
+	textDBResults = list(textDBResults)
+	result_list = list(chain(imageDBResults, textDBResults))
+
+	result = {
+		"collection": []
+	}
+
+	urlsIncluded = []
+
+	for i in result_list:
+		temp = i.sourceUrl
+		if temp not in urlsIncluded:
+			try:
+				check = i.keywords
+			except:
+				check = i.summary
+			data = {
+				"url": temp,
+				"title": i.title,
+				"icon": i.icon,
+				"summary": check
+			}
+			urlsIncluded.append(temp)
+			result["collection"].append(data)
+
+	return JsonResponse(result, safe=False)
 
 

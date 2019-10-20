@@ -47,7 +47,10 @@ class Scraper:
 				imageUrls.append(tempUrl)
 
 		iconLink = codebase.find("link", rel="shortcut icon")
-		iconLink = urljoin(url, iconLink.get("href"))
+		if not iconLink:
+			tempIconUrl = ' '
+		else:
+			tempIconUrl = urljoin(url, iconLink.get('href'))
 
 		title = codebase.title.string
 

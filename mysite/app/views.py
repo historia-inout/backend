@@ -20,15 +20,27 @@ import json
 from .scraper import Scraper
 from .models import textDB, imageDB
 
+from sumy.summarizers.lsa import LsaSummarizer
+from selenium import webdriver
+from sumy.summarizers.luhn import LuhnSummarizer
+from sumy.parsers.plaintext import PlaintextParser
+
 # Create your views here.
 def home(request):
 	return render(request, 'app/home.html')
 
 def scrape(request):
 	if request.method == 'POST':
+		
 		y = json.loads(request.body)
 		url = y.get("url", None)
 		print(url)
+
+		driver = webdriver.PhantomJS(executable_path='../phantomjs/bin/phantomjs')
+		driver.get(url)
+		el=driver.find_element_by_tag_name("body")
+		textContent=el.text
+		driver.close()
 
 		imageSourceUrls = imageDB.objects.values_list('sourceUrl', flat=True)
 		imageSourceUrls = list(imageSourceUrls)
@@ -40,31 +52,38 @@ def scrape(request):
 			LANGUAGE = "english"
 			SENTENCES_COUNT = 10
 
-			parser = HtmlParser.from_url(url, Tokenizer(LANGUAGE))
-			stemmer = Stemmer(LANGUAGE)
+			parser = PlaintextParser.from_string(textContent,Tokenizer("english"))
+			# parser = HtmlParser.from_url(url, Tokenizer(LANGUAGE))
+			# stemmer = Stemmer(LANGUAGE)
 
-			summarizer = Summarizer(stemmer)
-			summarizer.stop_words = get_stop_words(LANGUAGE)
+			# summarizer = Summarizer(stemmer)
+			summarizer = LuhnSummarizer()
+			# summarizer.stop_words = get_stop_words(LANGUAGE)
 
 			summary = ''
 			
+			# for sentence in summarizer(parser.document, SENTENCES_COUNT):
+			# 	summary = summary + str(sentence)
+
 			for sentence in summarizer(parser.document, SENTENCES_COUNT):
 				summary = summary + str(sentence)
 
+			print("Summary ",summary)
+
 			x = urlopen(url)
 			codebase = BeautifulSoup(x, 'html.parser')
-			try:
-				title = codebase.title.string
-			except:
+			title = codebase.title.string
+			if not title:
 				domain = urlparse(url)
-				title = data.hostname
+				title = domain.hostname
+			print(title)
 			iconLink = codebase.find("link", rel="shortcut icon")
 			if not iconLink:
-				tempIconUrl = ' '
+				iconLink = ' '
 			else:
-				tempIconUrl = urljoin(url, iconLink.get('href'))
+				iconLink = urljoin(url, iconLink.get('href'))
 
-			textDB.objects.create(summary=summary, dateTime=timezone.now(), sourceUrl=url, title=title, icon=tempIconUrl)
+			textDB.objects.create(summary=summary, dateTime=timezone.now(), sourceUrl=url, title=title, icon=iconLink)
 
 			scraper = Scraper()
 			scraper.scrape(url)
@@ -92,7 +111,7 @@ def scrape(request):
 
 			print(iconLink)
 
-			textDB.objects.create(summary=summary, dateTime=timezone.now(), sourceUrl=url, title=title, icon=tempIconUrl)
+			textDB.objects.create(summary=summary, dateTime=timezone.now(), sourceUrl=url, title=title, icon=iconLink)
 
 			scraper = Scraper()
 			scraper.scrape(url)

@@ -5,6 +5,7 @@ import json
 from google.cloud import vision
 from .models import imageDB
 from django.utils import timezone
+from urllib.parse import urlparse
 
 class Scraper:
 
@@ -50,13 +51,12 @@ class Scraper:
 		if not iconLink:
 			iconLink = ' '
 		else:
-			iconLink = urlzjoin(url, iconLink.get('href'))
+			iconLink = urljoin(url, iconLink.get('href'))
 
-		try:
-			title = codebase.title.string
-		except:
+		title = codebase.title.string
+		if not title:
 			domain = urlparse(url)
-			title = data.hostname
+			title = domain.hostname
 
 		for i in imageUrls:
 			keywords, label = self.detect_web_uri(i)

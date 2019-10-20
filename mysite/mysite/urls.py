@@ -23,6 +23,7 @@ urlpatterns = [
     path('scrape/', appView.scrape, name='scrape'),
     path('query/api/<int:pk>', appView.queryHistory, name='queryHistory'),
     path('query/', appView.query, name='query'),
+    path('query/mobile/api/', appView.queryScrapeMobile, name='queryapi'),
     path('history/', appView.history, name='history'),
     path('history/mobile/api/', appView.historyapi, name='historyapi'),
 ]

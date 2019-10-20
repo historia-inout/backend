@@ -29,6 +29,55 @@ from sumy.parsers.plaintext import PlaintextParser
 def home(request):
 	return render(request, 'app/home.html')
 
+def searchQueryMobile(heatWord):
+	imgRecords = imageDB.objects.values_list('keywords', flat=True)
+	imgRecords = list(imgRecords)
+
+	summaryRecords = textDB.objects.values_list('summary', flat=True)
+	summaryRecords = list(summaryRecords)
+
+	results = []
+
+	urlsIncluded = []
+
+	for i in imgRecords:
+		if heatWord.lower() in i.lower():
+			temp = imageDB.objects.filter(keywords=i)
+			for t in temp:
+				tempUrl = t.sourceUrl
+				if tempUrl not in urlsIncluded:
+					tempTitle = t.title
+					tempIcon = t.icon
+					result = {
+						"sourceUrl": tempUrl,
+						"icon": tempIcon,
+						"title": tempTitle
+					}
+					results.append(result)
+					urlsIncluded.append(tempUrl)
+
+	return results
+
+def queryScrapeMobile(request):
+	if request.method == 'POST':
+		y = json.loads(request.body)
+
+		query = y.get("query", None)
+
+		queryParams = query.split()
+
+		results = {
+			"collection": []
+		}
+
+		for i in queryParams:
+			res = searchQueryMobile(i)
+			for j in res:
+				results["collection"].append(j)
+
+		print(results)
+		return JsonResponse(results)
+
 def scrape(request):
 	if request.method == 'POST':
 		

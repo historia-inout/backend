@@ -1,0 +1,7 @@
+mysite/__pycache__/*
+mysite/app/migrations/__pycache__/*
+*.pyc
+phantomjs/
+venv/
+ghostdriver.log
+mysite/app/migrations/*
